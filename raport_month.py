@@ -1,6 +1,10 @@
 import psycopg2
+import csv
 import smtplib
+import os
 from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+from email.mime.application import MIMEApplication
 
 # ========================
 #   KONFIGURACJA BAZY
@@ -48,12 +52,14 @@ WHERE
 SMTP_HOST = "smtp.gmail.com"                              # Serwer SMTP (np. Gmail)
 SMTP_PORT = 587                                           # Port Gmail (STARTTLS)
 SMTP_USER = "marek.swiechowicz@3mk.pl"                    # Twój adres Gmail
-SMTP_PASS = "iqei hgxk fvvv hqcj"         # <--- Wklej tutaj hasło aplikacji (app password)
+SMTP_PASS = "iqei hgxk fvvv hqcj"              # Hasło aplikacji Gmail (app password)
 MAIL_FROM = "marek.swiechowicz@3mk.pl"                    # Najlepiej ten sam adres co SMTP_USER
-MAIL_TO = "marek.swiechowicz@3mk.pl"                           # Możesz wpisać jeden lub wiele adresów
-MAIL_SUBJECT = "Miesięczny Raport z Postgresa"
+MAIL_TO = "filip.augustyniak@3mk.pl"                           # Możesz wpisać jeden lub wiele adresów
+MAIL_SUBJECT = "Miesięczny Raport z Postgresa - CSV w załączniku"
 USE_TLS = True  # Gmail zwykle wymaga TLS (starttls)
 
+# Nazwa pliku CSV do zapisania i wysłania
+CSV_FILENAME = "raport.csv"
 
 def main():
     try:
@@ -71,21 +77,44 @@ def main():
         cursor.execute(SQL_QUERY)
         rows = cursor.fetchall()
 
-        # 3) Format wyników do tekstu (CSV w wersji minimalnej)
-        results_as_text = ""
-        for row in rows:
-            results_as_text += ";".join(str(x) for x in row) + "\n"
+        # 3) Zapisz wyniki do pliku CSV
+        # Zdefiniuj nagłówki, jeśli chcesz (lub pobierz z cursor.description)
+        headers = [
+            "created_datetime", "comment", "email", "company",
+            "qr_code", "product_image_url", "receipt_image_url"
+        ]
+
+        with open(CSV_FILENAME, mode="w", newline="", encoding="utf-8") as f:
+            writer = csv.writer(f, delimiter=';')
+            # Zapisz nagłówki
+            writer.writerow(headers)
+            # Zapisz dane
+            for row in rows:
+                writer.writerow(row)
 
         cursor.close()
         conn.close()
 
-        # 4) Przygotuj maila
-        msg = MIMEText(results_as_text)
+        # 4) Przygotuj maila (multipart, żeby dodać załącznik)
+        msg = MIMEMultipart()
         msg["Subject"] = MAIL_SUBJECT
         msg["From"] = MAIL_FROM
         msg["To"] = MAIL_TO
 
-        # 5) Wyślij maila
+        # Wiadomość tekstowa w treści maila
+        body = "Cześć,\n\nW załączniku przesyłam raport od pierwszego do pierwszego tego miesiąca w formacie CSV. \nPozdrawiam,\nMarekRaportBot"
+        msg.attach(MIMEText(body, "plain"))
+
+        # 5) Dodaj załącznik (plik CSV)
+        with open(CSV_FILENAME, "rb") as f:
+            file_data = f.read()
+            # Utwórz obiekt MIMEApplication do załącznika
+            attachment = MIMEApplication(file_data, Name=CSV_FILENAME)
+        # Ustaw nagłówki załącznika
+        attachment["Content-Disposition"] = f'attachment; filename="{CSV_FILENAME}"'
+        msg.attach(attachment)
+
+        # 6) Wyślij maila
         if USE_TLS:
             with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as s:
                 s.starttls()
@@ -96,11 +125,13 @@ def main():
                 s.login(SMTP_USER, SMTP_PASS)
                 s.sendmail(MAIL_FROM, [MAIL_TO], msg.as_string())
 
-        print("Mail wysłany pomyślnie.")
+        # Ewentualne posprzątanie pliku CSV (jeśli nie chcesz go przechowywać)
+        # os.remove(CSV_FILENAME)
+
+        print("Mail wysłany pomyślnie, plik CSV w załączniku.")
 
     except Exception as e:
         print("Błąd:", e)
-
 
 if __name__ == "__main__":
     main()
