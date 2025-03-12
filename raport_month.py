@@ -2,18 +2,18 @@ import psycopg2
 import smtplib
 from email.mime.text import MIMEText
 
-# ===========================================
-#  K O N F I G U R A C J A   P O S T G R E S
-# ===========================================
-DB_HOST = "allsafe-db-do-user-7193655-0.c.db.ondigitalocean.com"
-DB_PORT = 25060
-DB_NAME = "prod_backend"
-DB_USER = "marekswiechowicz"
-DB_PASS = "weexee5AhFaesu"  # <-- Wstaw swoje hasło do bazy
+# ========================
+#   KONFIGURACJA BAZY
+# ========================
+DB_HOST = "allsafe-db-do-user-7193655-0.c.db.ondigitalocean.com"  # Host bazy
+DB_PORT = 25060                                                   # Port
+DB_NAME = "prod_backend"                                          # Nazwa bazy
+DB_USER = "marekswiechowicz"                                      # Użytkownik
+DB_PASS = "weexee5AhFaesu"                                # Hasło do bazy
 
-# ===========================================
-#  Z A P Y T A N I E   S Q L
-# ===========================================
+# ========================
+#   ZAPYTANIE SQL
+# ========================
 SQL_QUERY = """
 SELECT 
     TO_CHAR(rma_rma.created_at, 'YYYY-MM-DD HH24:MI') AS created_datetime,
@@ -30,31 +30,34 @@ WHERE
     rma_rma.created_at >= date_trunc('month', CURRENT_DATE - interval '1 month')
     AND rma_rma.created_at < date_trunc('month', CURRENT_DATE)
     AND (
-        allsafe_company.name IN ('eD system a.s.', 'Titulo Glamoroso', 'Available Gadget', 'Nuovo mobile, UAB', 'UAB Benieva') 
+        allsafe_company.name IN (
+            'eD system a.s.',
+            'Titulo Glamoroso',
+            'Available Gadget',
+            'Nuovo mobile, UAB',
+            'UAB Benieva'
+        ) 
         OR allsafe_company.name = 'Josef KVAPIL a.s'
         OR allsafe_company.name = 'ED System'
     );
 """
 
-# ===========================================
-#  K O N F I G U R A C J A   S M T P
-# ===========================================
-SMTP_HOST = "smtp.gmail.com"
-SMTP_PORT = 587
-SMTP_USER = "marek.swiechowicz@3mk.pl"   # <-- Twój gmail
-SMTP_PASS = "M@@rek111"       # <-- Najlepiej hasło aplikacji (app password)
-USE_TLS = True
-
-MAIL_FROM = "marek.swiechowicz@3mk.pl"   # Najlepiej ten sam co SMTP_USER
-MAIL_TO = "marek.swiechowicz@3mk.pl"      # Tu wpisz adres docelowy (może być wiele w liście)
+# ========================
+#   KONFIGURACJA MAILA
+# ========================
+SMTP_HOST = "smtp.gmail.com"                              # Serwer SMTP (np. Gmail)
+SMTP_PORT = 587                                           # Port Gmail (STARTTLS)
+SMTP_USER = "marek.swiechowicz@3mk.pl"                    # Twój adres Gmail
+SMTP_PASS = "M@@rek111"              # Hasło aplikacji Gmail (app password)
+MAIL_FROM = "marek.swiechowicz@3mk.pl"                    # Najlepiej taki sam adres co SMTP_USER
+MAIL_TO = "marek.swiechowicz@3mk.pl"                           # Możesz wpisać jeden lub wiele adresów
 MAIL_SUBJECT = "Miesięczny Raport z Postgresa"
+USE_TLS = True  # Gmail zwykle wymaga TLS (starttls)
 
-# ===========================================
-#              K O D   S K R Y P T U
-# ===========================================
+
 def main():
     try:
-        # 1. Połączenie z bazą
+        # 1) Połączenie z bazą
         conn = psycopg2.connect(
             host=DB_HOST,
             port=DB_PORT,
@@ -64,27 +67,25 @@ def main():
         )
         cursor = conn.cursor()
 
-        # 2. Wykonanie zapytania
+        # 2) Wykonaj zapytanie
         cursor.execute(SQL_QUERY)
         rows = cursor.fetchall()
 
-        # 3. Formatowanie do tekstu (np. CSV)
+        # 3) Format wyników do tekstu (CSV w wersji minimalnej)
         results_as_text = ""
         for row in rows:
-            # Tworzymy prosty wiersz CSV oddzielany średnikami:
             results_as_text += ";".join(str(x) for x in row) + "\n"
 
-        # Zamknięcie kursora/połączenia
         cursor.close()
         conn.close()
 
-        # 4. Przygotowanie maila
+        # 4) Przygotuj maila
         msg = MIMEText(results_as_text)
         msg["Subject"] = MAIL_SUBJECT
         msg["From"] = MAIL_FROM
         msg["To"] = MAIL_TO
 
-        # 5. Wysyłka maila
+        # 5) Wyślij maila
         if USE_TLS:
             with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as s:
                 s.starttls()
@@ -99,6 +100,7 @@ def main():
 
     except Exception as e:
         print("Błąd:", e)
+
 
 if __name__ == "__main__":
     main()
