@@ -52,7 +52,7 @@ WHERE
 SMTP_HOST = "smtp.gmail.com"                              # Serwer SMTP (np. Gmail)
 SMTP_PORT = 587                                           # Port Gmail (STARTTLS)
 SMTP_USER = "marek.swiechowicz@3mk.pl"                    # Twój adres Gmail
-SMTP_PASS = "iqei hgxk fvvv hqcj"              # Hasło aplikacji Gmail (app password)
+SMTP_PASS = "cidq pdci lrsj hryu"              # Hasło aplikacji Gmail (app password)
 MAIL_FROM = "marek.swiechowicz@3mk.pl"                    # Najlepiej ten sam adres co SMTP_USER
 MAIL_TO = "filip.augustyniak@3mk.pl"                           # Możesz wpisać jeden lub wiele adresów
 MAIL_SUBJECT = "Miesięczny Raport z Postgresa - CSV w załączniku"
