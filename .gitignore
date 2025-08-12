@@ -1,0 +1,9 @@
+# ========================
+# Ignorowanie pliku z danymi konfiguracyjnymi
+# ========================
+.env
+
+# ========================
+# Ignorowanie plików CSV generowanych przez raport
+# ========================
+*.csv

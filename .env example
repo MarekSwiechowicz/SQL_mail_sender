@@ -1,0 +1,25 @@
+# ========================
+#  KONFIGURACJA BAZY
+# ========================
+DB_HOST=twoj_host_bazy
+DB_PORT=25060
+DB_NAME=twoja_nazwa_bazy
+DB_USER=twoj_uzytkownik
+DB_PASS=twoje_haslo
+
+# ========================
+#  KONFIGURACJA MAILA
+# ========================
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=twoj_email@example.com
+SMTP_PASS=twoje_haslo_aplikacji
+MAIL_FROM=twoj_email@example.com
+MAIL_TO=adres1@example.com,adres2@example.com
+MAIL_SUBJECT=Miesięczny Raport z Postgresa - CSV w załączniku
+USE_TLS=true
+
+# ========================
+#  INNE
+# ========================
+CSV_FILENAME=raport.csv
