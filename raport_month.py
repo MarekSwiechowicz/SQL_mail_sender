@@ -52,7 +52,7 @@ WHERE
 SMTP_HOST = "smtp.gmail.com"
 SMTP_PORT = 587
 SMTP_USER = "marek.swiechowicz@3mk.pl"
-SMTP_PASS = "gpsc uqel epxl wgwa"
+SMTP_PASS = "ofol lqrs dibk jqcq"
 MAIL_FROM = "marek.swiechowicz@3mk.pl"
 MAIL_TO = [
     "iwona.spaleniak@3mk.pl",
