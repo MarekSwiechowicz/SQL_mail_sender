@@ -98,7 +98,7 @@ def main():
         msg["From"] = MAIL_FROM
         msg["To"] = ", ".join(MAIL_TO)
 
-        body = "Cześć,\n\nW załączniku przesyłam raport od pierwszego do pierwszego tego miesiąca w formacie CSV. \nPozdrawiam,\nMarekRaportBot"
+        body = "Cześć,\n\nW załączniku przesyłam raport od pierwszego poprzedniego miesiąca do pierwszego tego miesiąca w formacie CSV. \nPozdrawiam,\nMarekRaportBot"
         msg.attach(MIMEText(body, "plain"))
 
         with open(CSV_FILENAME, "rb") as f:
