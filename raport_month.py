@@ -1,19 +1,44 @@
-import psycopg2
+import os
 import csv
 import smtplib
-import os
+import psycopg2
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from email.mime.application import MIMEApplication
+from dotenv import load_dotenv
+
+load_dotenv()
+
+def getenv_required(key: str) -> str:
+    val = os.getenv(key)
+    if not val:
+        raise RuntimeError(f"Brak wymaganej zmiennej środowiskowej {key}")
+    return val
+
+def getenv_int(key: str, default: int) -> int:
+    val = os.getenv(key)
+    return int(val) if val is not None else default
+
+def getenv_bool(key: str, default: bool) -> bool:
+    val = os.getenv(key)
+    if val is None:
+        return default
+    return val.strip().lower() in {"1", "true", "t", "yes", "y"}
+
+def getenv_list(key: str) -> list[str]:
+    val = os.getenv(key, "")
+    if not val.strip():
+        return []
+    return [x.strip() for x in val.split(",") if x.strip()]
 
 # ========================
 #   KONFIGURACJA BAZY
 # ========================
-DB_HOST = "allsafe-db-do-user-7193655-0.c.db.ondigitalocean.com"  # Host bazy
-DB_PORT = 25060                                                   # Port
-DB_NAME = "prod_backend"                                          # Nazwa bazy
-DB_USER = "marekswiechowicz"                                      # Użytkownik
-DB_PASS = "weexee5AhFaesu"                                        # Hasło do bazy
+DB_HOST = getenv_required("DB_HOST")
+DB_PORT = getenv_int("DB_PORT", 5432)
+DB_NAME = getenv_required("DB_NAME")
+DB_USER = getenv_required("DB_USER")
+DB_PASS = getenv_required("DB_PASS")
 
 # ========================
 #   ZAPYTANIE SQL
@@ -49,30 +74,29 @@ WHERE
 # ========================
 #   KONFIGURACJA MAILA
 # ========================
-SMTP_HOST = "smtp.gmail.com"
-SMTP_PORT = 587
-SMTP_USER = "marek.swiechowicz@3mk.pl"
-SMTP_PASS = "ofol lqrs dibk jqcq"
-MAIL_FROM = "marek.swiechowicz@3mk.pl"
-MAIL_TO = [
-    "iwona.spaleniak@3mk.pl",
-    "filip.augustyniak@3mk.pl",
-    "grzegorz.tomczyk@3mk.pl",
-    "marek.swiechowicz@3mk.pl"
-]
-MAIL_SUBJECT = "Miesięczny Raport z Postgresa - CSV w załączniku"
-USE_TLS = True
+SMTP_HOST = getenv_required("SMTP_HOST")
+SMTP_PORT = getenv_int("SMTP_PORT", 587)
+SMTP_USER = getenv_required("SMTP_USER")
+SMTP_PASS = getenv_required("SMTP_PASS")
+MAIL_FROM = getenv_required("MAIL_FROM")
+MAIL_TO = getenv_list("MAIL_TO")
+MAIL_SUBJECT = os.getenv("MAIL_SUBJECT", "Miesięczny Raport z Postgresa - CSV w załączniku")
+USE_TLS = getenv_bool("USE_TLS", True)
 
-CSV_FILENAME = "raport.csv"
+CSV_FILENAME = os.getenv("CSV_FILENAME", "raport.csv")
 
 def main():
     try:
+        if not MAIL_TO:
+            raise RuntimeError("Lista MAIL_TO jest pusta")
+
         conn = psycopg2.connect(
             host=DB_HOST,
             port=DB_PORT,
             database=DB_NAME,
             user=DB_USER,
-            password=DB_PASS
+            password=DB_PASS,
+            sslmode="require"  # DigitalOcean PG zazwyczaj wymaga SSL
         )
         cursor = conn.cursor()
 
@@ -98,7 +122,11 @@ def main():
         msg["From"] = MAIL_FROM
         msg["To"] = ", ".join(MAIL_TO)
 
-        body = "Cześć,\n\nW załączniku przesyłam raport od pierwszego poprzedniego miesiąca do pierwszego tego miesiąca w formacie CSV. \nPozdrawiam,\nMarekRaportBot"
+        body = (
+            "Cześć,\n\n"
+            "W załączniku przesyłam raport od pierwszego poprzedniego miesiąca do pierwszego tego miesiąca w formacie CSV.\n"
+            "Pozdrawiam,\nMarekRaportBot"
+        )
         msg.attach(MIMEText(body, "plain"))
 
         with open(CSV_FILENAME, "rb") as f:
@@ -107,17 +135,11 @@ def main():
         attachment["Content-Disposition"] = f'attachment; filename="{CSV_FILENAME}"'
         msg.attach(attachment)
 
-        if USE_TLS:
-            with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as s:
+        with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as s:
+            if USE_TLS:
                 s.starttls()
-                s.login(SMTP_USER, SMTP_PASS)
-                s.sendmail(MAIL_FROM, MAIL_TO, msg.as_string())
-        else:
-            with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as s:
-                s.login(SMTP_USER, SMTP_PASS)
-                s.sendmail(MAIL_FROM, MAIL_TO, msg.as_string())
-
-        # os.remove(CSV_FILENAME)
+            s.login(SMTP_USER, SMTP_PASS)
+            s.sendmail(MAIL_FROM, MAIL_TO, msg.as_string())
 
         print("Mail wysłany pomyślnie, plik CSV w załączniku.")
 
